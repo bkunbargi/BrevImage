@@ -21,19 +21,24 @@ class BrevLoadImage:
                 },
                 "optional": {
                     "filename_text_extension": (["true", "false"],),
+                    "use_opt_directory": (["true", "false"],),
                 }
             }
 
     RETURN_TYPES = ("IMAGE", "MASK", TEXT_TYPE)
     RETURN_NAMES = ("image", "mask", "filename_text")
     FUNCTION = "load_image"
-
     CATEGORY = "BrevMage"
 
-    def load_image(self, image_path, RGBA='false', filename_text_extension="true"):
+    def load_image(self, image_path, RGBA='false', filename_text_extension="true", use_opt_directory="true"):
         print(f"Received image_path: {image_path}")
         print("The input dir is: ", self.input_dir)
-        harcoded_input_dir = "/opt/ComfyUI/input/"
+        
+        if use_opt_directory == "true":
+            hardcoded_input_dir = "/opt/ComfyUI/input/"
+        else:
+            hardcoded_input_dir = "/runpod-volume/ComfyUI/input/"
+        print("Hardcoded dir to use", hardcoded_input_dir)
         RGBA = (RGBA == 'true')
 
         if image_path.startswith('http'):
@@ -72,7 +77,7 @@ class BrevLoadImage:
         else:
             filename = os.path.splitext(os.path.basename(image_path))[0]
             print(filename)
-
+        print("Returning Image")
         return (image, mask, filename)
 
     def download_image(self, url):
