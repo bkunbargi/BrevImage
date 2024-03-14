@@ -32,37 +32,50 @@ class BrevLoadImage:
     CATEGORY = "BrevMage"
 
     def load_image(self, image_path, RGBA='false', filename_text_extension="true"):
+        print(f"Received image_path: {image_path}")
         RGBA = (RGBA == 'true')
 
         try:
+            print(f"Attempting to open image: {image_path}")
             i = Image.open(image_path)
+            print(f"Successfully opened image: {image_path}")
         except OSError:
             if image_path.startswith('http'):
+                print(f"Image path is a URL: {image_path}")
                 # Extract the filename from the URL
                 filename = os.path.basename(image_path)
                 # Construct the downloaded file path
                 downloaded_path = f"{self.input_dir}/{filename}"
+                print(f"Constructed downloaded file path: {downloaded_path}")
                 try:
+                    print(f"Attempting to open downloaded image: {downloaded_path}")
                     i = Image.open(downloaded_path)
+                    print(f"Successfully opened downloaded image: {downloaded_path}")
                 except OSError:
-                    print(f"The downloaded image `{downloaded_path}` cannot be opened!")
+                    print(f"Failed to open downloaded image: {downloaded_path}")
                     i = Image.new(mode='RGB', size=(512, 512), color=(0, 0, 0))
             else:
+                print(f"Image path is not a URL: {image_path}")
                 print(f"The image `{image_path.strip()}` specified doesn't exist!")
                 i = Image.new(mode='RGB', size=(512, 512), color=(0, 0, 0))
 
         if not i:
+            print("No image loaded. Returning.")
             return
 
+        print("Processing image...")
         # Rest of the code remains the same
 
+        print("Returning processed image data.")
         return (image, mask, filename)
 
     def download_image(self, url):
+        print(f"Attempting to download image from URL: {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()
             img = Image.open(BytesIO(response.content))
+            print(f"Successfully downloaded image from URL: {url}")
             return img
         except requests.exceptions.RequestException as err:
             print(f"Error downloading image: {err}")
