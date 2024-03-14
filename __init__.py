@@ -8,7 +8,6 @@ import requests
 import torch
 
 TEXT_TYPE = "STRING"
-
 class BrevLoadImage:
     def __init__(self):
         self.input_dir = comfy_paths.input_directory
@@ -16,70 +15,80 @@ class BrevLoadImage:
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required": {
-                "image_path": ("STRING", {"default": './ComfyUI/input/example.png', "multiline": False}),
-                "RGBA": (["false", "true"],),
-            },
-            "optional": {
-                "filename_text_extension": (["true", "false"],),
+                "required": {
+                    "image_path": ("STRING", {"default": './ComfyUI/input/example.png', "multiline": False}),
+                    "RGBA": (["false","true"],),
+                },
+                "optional": {
+                    "filename_text_extension": (["true", "false"],),
+                }
             }
-        }
 
     RETURN_TYPES = ("IMAGE", "MASK", TEXT_TYPE)
     RETURN_NAMES = ("image", "mask", "filename_text")
     FUNCTION = "load_image"
+
     CATEGORY = "BrevMage"
 
     def load_image(self, image_path, RGBA='false', filename_text_extension="true"):
         print(f"Received image_path: {image_path}")
+        print("The input dir is: ", self.input_dir)
+        harcoded_input_dir = "/opt/ComfyUI/input/"
         RGBA = (RGBA == 'true')
-        try:
-            if not image_path.startswith('http'):
-                image_path = os.path.join(self.input_dir, image_path)
-            print(f"Attempting to open image: {image_path}")
-            i = Image.open(image_path)
-            print(f"Successfully opened image: {image_path}")
-            filename = os.path.basename(image_path)
-        except OSError:
-            if image_path.startswith('http'):
-                print(f"Image path is a URL: {image_path}")
-                # Extract the filename from the URL
-                filename = os.path.basename(image_path)
-                # Construct the downloaded file path
-                downloaded_path = f"{self.input_dir}/{filename}"
-                print(f"Constructed downloaded file path: {downloaded_path}")
-                try:
-                    print(f"Attempting to open downloaded image: {downloaded_path}")
-                    i = Image.open(downloaded_path)
-                    print(f"Successfully opened downloaded image: {downloaded_path}")
-                except OSError:
-                    print(f"Failed to open downloaded image: {downloaded_path}")
-                    i = Image.new(mode='RGB', size=(512, 512), color=(0, 0, 0))
-            else:
-                print(f"Image path is not a URL: {image_path}")
-                print(f"The image `{image_path.strip()}` specified doesn't exist!")
-                i = Image.new(mode='RGB', size=(512, 512), color=(0, 0, 0))
 
+        if image_path.startswith('http'):
+            from io import BytesIO
+            i = self.download_image(image_path)
+        else:
+            try:
+                new_image_path = harcoded_input_dir + image_path
+                print(f"Attempting to open image: {new_image_path}")
+                i = Image.open(new_image_path)
+                print(f"Successfully opened image: {new_image_path}")
+            except OSError:
+                print(f"The image `{new_image_path.strip()}` specified doesn't exist!")
+                i = Image.new(mode='RGB', size=(512, 512), color=(0, 0, 0))
         if not i:
-            print("No image loaded. Returning.")
             return
 
-        print("Processing image...")
-        # Rest of the code remains the same
+        # Update history
+        # update_history_images(image_path)
 
-        print("Returning processed image data.")
+        image = i
+        if not RGBA:
+            image = image.convert('RGB')
+        image = np.array(image).astype(np.float32) / 255.0
+        image = torch.from_numpy(image)[None,]
+
+        if 'A' in i.getbands():
+            mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
+            mask = 1. - torch.from_numpy(mask)
+        else:
+            mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+
+        if filename_text_extension == "true":
+            filename = os.path.basename(image_path)
+            print(filename)
+        else:
+            filename = os.path.splitext(os.path.basename(image_path))[0]
+            print(filename)
+
         return (image, mask, filename)
 
     def download_image(self, url):
-        print(f"Attempting to download image from URL: {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()
             img = Image.open(BytesIO(response.content))
-            print(f"Successfully downloaded image from URL: {url}")
             return img
+        except requests.exceptions.HTTPError as errh:
+            print(f"HTTP Error: ({url}): {errh}")
+        except requests.exceptions.ConnectionError as errc:
+            print(f"Connection Error: ({url}): {errc}")
+        except requests.exceptions.Timeout as errt:
+            print(f"Timeout Error: ({url}): {errt}")
         except requests.exceptions.RequestException as err:
-            print(f"Error downloading image: {err}")
+            print(f"Request Exception: ({url}): {err}")
 
     @classmethod
     def IS_CHANGED(cls, image_path):
