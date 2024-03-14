@@ -39,6 +39,7 @@ class BrevLoadImage:
             print(f"Attempting to open image: {image_path}")
             i = Image.open(image_path)
             print(f"Successfully opened image: {image_path}")
+            filename = os.path.basename(image_path)
         except OSError:
             if image_path.startswith('http'):
                 print(f"Image path is a URL: {image_path}")
