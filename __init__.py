@@ -28,14 +28,14 @@ class BrevLoadImage:
     RETURN_TYPES = ("IMAGE", "MASK", TEXT_TYPE)
     RETURN_NAMES = ("image", "mask", "filename_text")
     FUNCTION = "load_image"
-
     CATEGORY = "BrevMage"
 
     def load_image(self, image_path, RGBA='false', filename_text_extension="true"):
         print(f"Received image_path: {image_path}")
         RGBA = (RGBA == 'true')
-
         try:
+            if not image_path.startswith('http'):
+                image_path = os.path.join(self.input_dir, image_path)
             print(f"Attempting to open image: {image_path}")
             i = Image.open(image_path)
             print(f"Successfully opened image: {image_path}")
