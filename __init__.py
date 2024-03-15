@@ -46,7 +46,7 @@ class BrevLoadImage:
             i = self.download_image(image_path)
         else:
             try:
-                new_image_path = harcoded_input_dir + image_path
+                new_image_path = hardcoded_input_dir + image_path
                 print(f"Attempting to open image: {new_image_path}")
                 i = Image.open(new_image_path)
                 print(f"Successfully opened image: {new_image_path}")
